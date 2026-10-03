@@ -2676,7 +2676,11 @@
       statusFinding: "Finding your location…",
       statusLocated: "Location found: {place}.",
       statusLocatedOther: "Your country isn't on the list yet. Type your city so Google Maps searches near you.",
-      statusGeoDenied: "Location permission was denied. You can choose your area by hand.",
+      statusGeoDenied: "Location is blocked for this site. In Chrome, tap the icon left of the address → Permissions → Location → Allow, and check that Chrome is allowed to use location in your phone's settings. Or choose your area by hand.",
+      statusGeoOff: "Your phone's location is turned off. Turn on Location in quick settings, then tap Use my location again.",
+      statusGeoTimeout: "Finding your location took too long. Turn on Location (and Wi-Fi if you can), then try again.",
+      statusGeoInsecure: "Location only works on a secure (https) page. Open the site's https:// link instead.",
+      geoInAppTip: "Tip: this page is open inside another app. Tap ⋯ → Open in browser (Chrome or Safari) for location to work.",
       statusNoGeo: "Your browser can't share location. Choose your province from the list.",
       statusOutsideVn: "You seem to be outside Vietnam. Pick your country above.",
       statusNear: "Showing places in {city}, near {area}.",
@@ -2778,7 +2782,11 @@
       statusFinding: "Đang tìm vị trí của bạn…",
       statusLocated: "Đã xác định vị trí: {place}.",
       statusLocatedOther: "Quốc gia của bạn chưa có trong danh sách. Hãy gõ tên thành phố để Google Maps tìm quán gần bạn.",
-      statusGeoDenied: "Bạn đã từ chối quyền vị trí. Bạn có thể tự chọn khu vực.",
+      statusGeoDenied: "Trang web đang bị chặn quyền vị trí. Trên Chrome, bấm biểu tượng bên trái thanh địa chỉ → Quyền → Vị trí → Cho phép, và kiểm tra Chrome đã được cấp quyền vị trí trong Cài đặt điện thoại. Hoặc tự chọn khu vực.",
+      statusGeoOff: "Định vị trên điện thoại đang tắt. Hãy bật Vị trí trong thanh cài đặt nhanh rồi bấm Use my location lại.",
+      statusGeoTimeout: "Tìm vị trí quá lâu. Hãy bật Vị trí (và Wi-Fi nếu được) rồi thử lại.",
+      statusGeoInsecure: "Định vị chỉ hoạt động trên trang bảo mật (https). Hãy mở link bắt đầu bằng https://.",
+      geoInAppTip: "Mẹo: trang đang mở bên trong một app khác. Bấm ⋯ → Mở bằng trình duyệt (Chrome hoặc Safari) để dùng định vị.",
       statusNoGeo: "Trình duyệt không chia sẻ được vị trí. Hãy chọn tỉnh/thành phố trong danh sách.",
       statusOutsideVn: "Có vẻ bạn đang ở ngoài Việt Nam. Hãy chọn quốc gia ở trên.",
       statusNear: "Đang hiện quán ở {city}, gần khu vực {area}.",
@@ -4035,15 +4043,15 @@
     return center ? center.shopee : null;
   }
 
-  function setStatus(key, vars = {}, isWarning = false) {
-    statusState = { key, vars, isWarning };
+  function setStatus(key, vars = {}, isWarning = false, tipKey = "") {
+    statusState = { key, vars, isWarning, tipKey };
     renderStatus();
   }
   function renderStatus() {
     if (!statusState) { locStatus.textContent = ""; return; }
     const vars = { ...statusState.vars };
     if (vars.countryCode) vars.country = countryName(vars.countryCode);
-    locStatus.textContent = t(statusState.key, vars);
+    locStatus.textContent = t(statusState.key, vars) + (statusState.tipKey ? " " + t(statusState.tipKey) : "");
     locStatus.classList.toggle("warn", statusState.isWarning);
   }
 
@@ -4087,12 +4095,36 @@
 
   // Ask for the device location (the browser asks the user first) and fill in
   // country, state/province and city. The coordinates stay in the browser.
+  // Apps like Discord, Messenger, Zalo or Facebook open links in their own mini browser,
+  // which often blocks location. Android marks these with "wv" in the user agent.
+  const IN_APP_BROWSER = /FBAN|FBAV|Instagram|Messenger|Discord|Zalo|Line\/|TikTok|Snapchat|; wv\)/i.test(navigator.userAgent || "");
+
   function detectCity() {
     if (!("geolocation" in navigator)) return setStatus("statusNoGeo", {}, true);
+    if (!window.isSecureContext) return setStatus("statusGeoInsecure", {}, true);
     locateBtn.disabled = true;
     setStatus("statusFinding");
-    navigator.geolocation.getCurrentPosition(
-      position => {
+    // First try a quick, rough fix (Wi-Fi and mobile network). If that fails or is too
+    // slow, which is common on Android, try again with GPS and a longer wait.
+    const quick = { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 };
+    const precise = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
+    const onError = (error, retried) => {
+      if (error && error.code !== error.PERMISSION_DENIED && !retried) {
+        navigator.geolocation.getCurrentPosition(onPosition, e => onError(e, true), precise);
+        return;
+      }
+      locateBtn.disabled = false;
+      const tip = IN_APP_BROWSER ? "geoInAppTip" : "";
+      if (error && error.code === error.PERMISSION_DENIED) setStatus("statusGeoDenied", {}, true, tip);
+      else if (error && error.code === error.POSITION_UNAVAILABLE) setStatus("statusGeoOff", {}, true, tip);
+      else if (error && error.code === error.TIMEOUT) setStatus("statusGeoTimeout", {}, true, tip);
+      else setStatus("statusGeoFail", {}, true, tip);
+    };
+    navigator.geolocation.getCurrentPosition(onPosition, e => onError(e, false), quick);
+  }
+
+  function onPosition(position) {
+    {
         locateBtn.disabled = false;
         const { latitude: lat, longitude: lng } = position.coords;
 
@@ -4121,15 +4153,7 @@
         renderResultAndSummary();
         renderStage();
         setStatus("statusLocated", { place: placeText() });
-      },
-      error => {
-        locateBtn.disabled = false;
-        if (error && error.code === error.PERMISSION_DENIED) setStatus("statusGeoDenied", {}, true);
-        else if (citySelect.value) describeChoice();
-        else setStatus("statusGeoFail", {}, true);
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
-    );
+    }
   }
 
   // ---------- Order links ----------
@@ -4269,10 +4293,26 @@
 
   // ---------- Sound effects (made in the browser, no audio files) ----------
   let audio = null;
+  let master = null;
+  // Phone speakers are quiet, so touch devices get a bigger boost
+  const SOUND_BOOST = window.matchMedia && window.matchMedia("(pointer: coarse)").matches ? 2.6 : 1.7;
   function audioContext() {
     if (!soundOn) return null;
     try {
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (!audio) {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+        // Every sound goes through a master volume and a compressor, which makes it
+        // louder and fuller without crackling on small speakers
+        const compressor = audio.createDynamicsCompressor();
+        compressor.threshold.value = -20;
+        compressor.knee.value = 8;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.12;
+        master = audio.createGain();
+        master.gain.value = SOUND_BOOST;
+        master.connect(compressor).connect(audio.destination);
+      }
       if (audio.state === "suspended") audio.resume();
       return audio;
     } catch (e) { return null; }
@@ -4288,26 +4328,30 @@
     osc.frequency.exponentialRampToValueAtTime(Math.max(endFreq, 1), t0 + length);
     gain.gain.setValueAtTime(volume, t0);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + length);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(master || ctx.destination);
     osc.start(t0);
     osc.stop(t0 + length + 0.02);
   }
   const sounds = {
     // Latch clicks open, then a rising whoosh
     unlock() {
-      tone(140, 0, 0.12, { type: "triangle", volume: 0.25, endFreq: 70 });
-      tone(900, 0.05, 0.05, { volume: 0.06 });
-      tone(220, 0.12, 0.45, { type: "sawtooth", volume: 0.05, endFreq: 880 });
+      // Pitched where phone speakers can play it (very low notes are lost on phones)
+      tone(330, 0, 0.12, { type: "triangle", volume: 0.35, endFreq: 180 });
+      tone(900, 0.05, 0.06, { volume: 0.14 });
+      tone(330, 0.12, 0.45, { type: "sawtooth", volume: 0.12, endFreq: 1200 });
     },
     // One short click each time a card passes the marker
-    tick(pitch = 1) { tone(1700 * pitch, 0, 0.03, { volume: 0.05 }); },
+    tick(pitch = 1) {
+      tone(1500 * pitch, 0, 0.035, { volume: 0.16 });
+      tone(750 * pitch, 0, 0.03, { type: "triangle", volume: 0.12 });
+    },
     // Bigger chime for rarer cards
     reveal(rarity) {
       const steps = { common: 2, uncommon: 3, rare: 4, epic: 5, legendary: 6 }[rarity] || 2;
       const notes = [523, 659, 784, 1047, 1319, 1568];
-      for (let i = 0; i < steps; i++) tone(notes[i], i * 0.09, 0.35, { type: "triangle", volume: 0.12 });
+      for (let i = 0; i < steps; i++) tone(notes[i], i * 0.09, 0.4, { type: "triangle", volume: 0.26 });
       if (rarity === "epic" || rarity === "legendary") {
-        tone(2093, steps * 0.09, 0.8, { type: "sine", volume: 0.08 });
+        tone(2093, steps * 0.09, 0.8, { type: "sine", volume: 0.16 });
       }
     }
   };
