@@ -1,4 +1,4 @@
-# 🍜 What to eat today? (Hôm nay ăn gì?)
+# 🍜 What to eat today? 
 
 Can't decide what to eat? Open a case and let the reel decide.
 
@@ -27,12 +27,6 @@ Can't decide what to eat? Open a case and let the reel decide.
 
 Plain **HTML, CSS and JavaScript** in a single file, with no frameworks, no build step and no backend. Sounds are generated with the Web Audio API, and settings are saved in the browser with `localStorage`.
 
-## 🚀 Run it yourself
-
-1. Download `index.html`.
-2. Open it in any modern browser.
-
-That's it. To host it, upload `index.html` to a GitHub repository and turn on **Settings → Pages** (branch `main`, folder `/ (root)`).
 
 ## ⚠️ Notes
 
