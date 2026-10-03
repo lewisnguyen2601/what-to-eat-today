@@ -409,6 +409,16 @@
     background: #C8102E; border-radius: 999px; padding: 0.05rem 0.5rem; margin-right: 0.3rem;
   }
 
+  /* Small note at the bottom of the screen */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px)); z-index: 50;
+    transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
+    max-width: min(92vw, 30rem); padding: 0.7rem 1rem; border-radius: 12px;
+    background: #10131F; color: #FFFFFF; font-weight: 700; font-size: 0.9rem; text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); transition: opacity 0.2s, transform 0.2s;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
   /* Brand badges */
   .brand {
     display: inline-block; vertical-align: middle; margin-left: 0.2rem;
@@ -2631,6 +2641,7 @@
       luxuryLabel: "Luxury spin", luxuryHint: "Only premium restaurants, dishes and drinks in {country}.",
       luxuryRestaurants: "Includes {n} high-end restaurants in your area.",
       luxuryMin: "Every dish is from {dish} and every drink from {drink}.",
+      copiedDish: "Copied “{name}”. Paste it into the app's search box.",
       luxuryNoLimit: "Luxury spin: no budget limit", budgetAllLabel: "Use this budget for every meal", seasonal: "Fall 2026",
       budgetNear: "The drink always goes with the dish.", restaurantLabel: "Restaurant",
       luxuryCityTip: "Type your city for exact results.", michelin: "Michelin-starred",
@@ -2677,6 +2688,7 @@
       statusLocated: "Location found: {place}.",
       statusLocatedOther: "Your country isn't on the list yet. Type your city so Google Maps searches near you.",
       statusGeoDenied: "Location is blocked for this site. In Chrome, tap the icon left of the address → Permissions → Location → Allow, and check that Chrome is allowed to use location in your phone's settings. Or choose your area by hand.",
+      statusFindingGps: "Still looking, trying GPS for a more exact position…",
       statusGeoOff: "Your phone's location is turned off. Turn on Location in quick settings, then tap Use my location again.",
       statusGeoTimeout: "Finding your location took too long. Turn on Location (and Wi-Fi if you can), then try again.",
       statusGeoInsecure: "Location only works on a secure (https) page. Open the site's https:// link instead.",
@@ -2737,6 +2749,7 @@
       luxuryLabel: "Luxury spin", luxuryHint: "Chỉ gồm nhà hàng, món ăn và đồ uống cao cấp tại {country}.",
       luxuryRestaurants: "Có {n} nhà hàng cao cấp ở khu vực của bạn.",
       luxuryMin: "Mỗi món từ {dish}, mỗi đồ uống từ {drink}.",
+      copiedDish: "Đã copy “{name}”. Dán vào ô tìm kiếm trong app nhé.",
       luxuryNoLimit: "Luxury spin: không giới hạn ngân sách", budgetAllLabel: "Áp dụng ngân sách này cho tất cả các bữa", seasonal: "Mùa thu 2026",
       budgetNear: "Đồ uống luôn hợp với món ăn.", restaurantLabel: "Nhà hàng",
       luxuryCityTip: "Gõ tên thành phố để kết quả chính xác hơn.", michelin: "Sao Michelin",
@@ -2783,6 +2796,7 @@
       statusLocated: "Đã xác định vị trí: {place}.",
       statusLocatedOther: "Quốc gia của bạn chưa có trong danh sách. Hãy gõ tên thành phố để Google Maps tìm quán gần bạn.",
       statusGeoDenied: "Trang web đang bị chặn quyền vị trí. Trên Chrome, bấm biểu tượng bên trái thanh địa chỉ → Quyền → Vị trí → Cho phép, và kiểm tra Chrome đã được cấp quyền vị trí trong Cài đặt điện thoại. Hoặc tự chọn khu vực.",
+      statusFindingGps: "Vẫn đang tìm, đang thử dùng GPS để chính xác hơn…",
       statusGeoOff: "Định vị trên điện thoại đang tắt. Hãy bật Vị trí trong thanh cài đặt nhanh rồi bấm Use my location lại.",
       statusGeoTimeout: "Tìm vị trí quá lâu. Hãy bật Vị trí (và Wi-Fi nếu được) rồi thử lại.",
       statusGeoInsecure: "Định vị chỉ hoạt động trên trang bảo mật (https). Hãy mở link bắt đầu bằng https://.",
@@ -3150,8 +3164,10 @@
     shopee: { name: "ShopeeFood", bg: "#EE4D2D", fg: "#FFFFFF", android: "com.deliverynow" },
     grabVN: { name: "GrabFood", bg: "#00B14F", fg: "#FFFFFF", url: "https://food.grab.com/vn/vi/", android: "com.grabtaxi.passenger" },
     grabSG: { name: "GrabFood", bg: "#00B14F", fg: "#FFFFFF", url: "https://food.grab.com/sg/en/", android: "com.grabtaxi.passenger" },
-    uberEats: { name: "Uber Eats", bg: "#000000", fg: "#FFFFFF", line: "#06C167", url: "https://www.ubereats.com", android: "com.ubercab.eats" },
-    doorDash: { name: "DoorDash", bg: "#FF3008", fg: "#FFFFFF", url: "https://www.doordash.com", android: "com.dd.doordash" },
+    uberEats: { name: "Uber Eats", bg: "#000000", fg: "#FFFFFF", line: "#06C167", url: "https://www.ubereats.com", android: "com.ubercab.eats",
+      search: q => `https://www.ubereats.com/search?q=${encodeURIComponent(q)}` },
+    doorDash: { name: "DoorDash", bg: "#FF3008", fg: "#FFFFFF", url: "https://www.doordash.com", android: "com.dd.doordash",
+      search: q => `https://www.doordash.com/search/store/${encodeURIComponent(q)}/` },
     skip: { name: "SkipTheDishes", bg: "#F68B1F", fg: "#FFFFFF", url: "https://www.skipthedishes.com" },
     deliverooUK: { name: "Deliveroo", bg: "#00CCBC", fg: "#FFFFFF", url: "https://deliveroo.co.uk", android: "com.deliveroo.orderapp" },
     deliverooFR: { name: "Deliveroo", bg: "#00CCBC", fg: "#FFFFFF", url: "https://deliveroo.fr", android: "com.deliveroo.orderapp" },
@@ -4106,13 +4122,26 @@
     setStatus("statusFinding");
     // First try a quick, rough fix (Wi-Fi and mobile network). If that fails or is too
     // slow, which is common on Android, try again with GPS and a longer wait.
-    const quick = { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 };
-    const precise = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
+    const quick = { enableHighAccuracy: false, timeout: 6000, maximumAge: 600000 };
+    const precise = { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 };
+    // Some in-app browsers never answer at all; never leave the user waiting forever
+    let finished = false;
+    const watchdog = setTimeout(() => onError({ code: 3, TIMEOUT: 3, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2 }, true), 16000);
+    const succeed = position => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(watchdog);
+      onPosition(position);
+    };
     const onError = (error, retried) => {
+      if (finished) return;
       if (error && error.code !== error.PERMISSION_DENIED && !retried) {
-        navigator.geolocation.getCurrentPosition(onPosition, e => onError(e, true), precise);
+        setStatus("statusFindingGps");
+        navigator.geolocation.getCurrentPosition(succeed, e => onError(e, true), precise);
         return;
       }
+      finished = true;
+      clearTimeout(watchdog);
       locateBtn.disabled = false;
       const tip = IN_APP_BROWSER ? "geoInAppTip" : "";
       if (error && error.code === error.PERMISSION_DENIED) setStatus("statusGeoDenied", {}, true, tip);
@@ -4120,7 +4149,7 @@
       else if (error && error.code === error.TIMEOUT) setStatus("statusGeoTimeout", {}, true, tip);
       else setStatus("statusGeoFail", {}, true, tip);
     };
-    navigator.geolocation.getCurrentPosition(onPosition, e => onError(e, false), quick);
+    navigator.geolocation.getCurrentPosition(succeed, e => onError(e, false), quick);
   }
 
   function onPosition(position) {
@@ -4226,21 +4255,28 @@
     return [images, ...orderLinksFor(item, code, maps)];
   }
 
+  // What to type in a delivery app's search box: the brand for chain items, otherwise the
+  // dish name people search for locally (Vietnamese in Vietnam, "Pho" or "Banh mi" abroad)
+  const appSearchTerm = item => searchName(item).replace(/ Vietnamese$/, "");
+
   function orderLinksFor(item, code, maps) {
+    const term = appSearchTerm(item);
     if (!code) return [maps, { label: t("chooseWhere"), needsLocation: true }];
     if (code === "VN") {
       const links = [];
       if (!citySelect.value) links.push({ label: t("chooseCityToOrder"), needsLocation: true });
       else if (shopeeArea()) {
-        links.push({ label: t("orderShopee"), href: appLink(APPS.shopee, shopeeFoodUrl(item)), app: APPS.shopee });
+        links.push({ label: t("orderShopee"), href: appLink(APPS.shopee, shopeeFoodUrl(item)), app: APPS.shopee, copy: term });
       }
-      links.push({ label: t("orderGrab"), href: appLink(APPS.grabVN, APPS.grabVN.url), app: APPS.grabVN });
+      links.push({ label: t("orderGrab"), href: appLink(APPS.grabVN, APPS.grabVN.url), app: APPS.grabVN, copy: term });
       links.push(maps);
       return links;
     }
     return [maps, ...countryInfo(code).apps.map(key => {
       const app = APPS[key];
-      return { label: app.name, href: appLink(app, app.url), app };
+      // Apps with a search page open straight on the dish; every app also gets the dish copied
+      const url = app.search ? app.search(term) : app.url;
+      return { label: app.name, href: appLink(app, url), app, copy: term };
     })];
   }
 
@@ -4249,9 +4285,52 @@
       ? `<button type="button" class="order-link needs-location">${escapeHtml(link.label)}</button>`
       : `<a class="order-link ${link.kind || ""} ${link.app ? "app" : ""}" href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer"
            ${link.app ? `style="--app-bg:${link.app.bg};--app-fg:${link.app.fg};--app-line:${link.app.line || link.app.bg}"` : ""}
+           ${link.copy ? `data-copy="${escapeHtml(link.copy)}"` : ""}
            aria-label="${escapeHtml(`${link.label}: ${displayName(item)}`)}">${escapeHtml(link.label)}</a>`
     ).join("")}</div>`;
   }
+
+  // ---------- Copy the dish name when opening a delivery app ----------
+  // Most delivery apps can't be opened on a search, so the dish name goes to the clipboard
+  // and a short note says to paste it into the app's search box.
+  function copyText(text) {
+    let done = false;
+    try {
+      // Works synchronously inside the tap, before the app opens
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      done = document.execCommand("copy");
+      area.remove();
+    } catch (e) { /* fall back to the Clipboard API */ }
+    if (!done && navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  let toastTimer = null;
+  function showToast(message) {
+    let toast = $("toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "toast";
+      toast.setAttribute("role", "status");
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3500);
+  }
+
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[data-copy]");
+    if (!link) return;
+    copyText(link.dataset.copy);
+    showToast(t("copiedDish", { name: link.dataset.copy }));
+  });
 
   // ---------- Cards ----------
   // Restaurants: the name in gold serif, then what to order
